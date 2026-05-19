@@ -1,7 +1,7 @@
 // /src/api/aiService.ts
 
 // We updated this to your exact laptop IP! (Assuming your backend runs on port 3000)
-const BACKEND_URL = 'http://10.10.219.250:3000';
+const BACKEND_URL = 'http://192.168.0.103:3000';
 
 export const fetchAIInsight = async (bpm: number, contextId: string) => {
   const controller = new AbortController();

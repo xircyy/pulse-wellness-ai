@@ -4,9 +4,12 @@ import { Camera, useCameraDevice, useCameraPermission, useFrameProcessor } from 
 import { Worklets, useSharedValue } from 'react-native-worklets-core';
 import { VisionCameraProxy } from 'react-native-vision-camera';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 
 import { ScanState } from '../../Constants/states'; 
 import { fetchAIInsight } from '../../API/aiService'; 
+import { useResponsive } from '../../Constants/responsive';
 
 import { PhaseIdle } from './Phases/PhaseIdle';
 import { PhaseDetecting } from './Phases/PhaseDetecting';
@@ -14,12 +17,18 @@ import { PhaseHolding } from './Phases/PhaseHolding';
 import { PhaseBreathing } from './Phases/PhaseBreathing';
 import { PhaseComplete } from './Phases/PhaseComplete';
 
+import ScanIcon from '../../Icons/ScanIcon';
+import HistoryIcon from '../../Icons/HistoryIcon';
+
 // @ts-ignore
 const rednessPlugin = VisionCameraProxy.initFrameProcessorPlugin('getAverageRedness');
 
 export default function HeartScanner() {
   const { hasPermission, requestPermission } = useCameraPermission();
   const device = useCameraDevice('back');
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { fontSize, ms, bottomNavHeight, height } = useResponsive();
 
   const [currentState, setCurrentState] = useState<ScanState>(ScanState.IDLE);
   const [scanPhase, setScanPhase] = useState(0); 
@@ -203,67 +212,92 @@ export default function HeartScanner() {
       />
 
       <View style={styles.uiOverlay}>
-        <Text style={styles.headerTitle}>Pulse Wellness</Text>
+        {/* Header with safe area inset */}
+        <View style={{ paddingTop: insets.top, paddingBottom: ms(8) }}>
+          <Text style={[styles.headerTitle, { fontSize: fontSize.title }]}>Pulse Wellness</Text>
+        </View>
 
-        {currentState === ScanState.IDLE && (
-          <PhaseIdle onStart={handleStartScan} />
-        )}
+        {/* Content area — flex:1 absorbs all space, centers content */}
+        <View style={[styles.contentArea, { marginBottom: 80 }]}>
 
-        {currentState === ScanState.SCANNING && (
-          <View style={{ flex: 1, justifyContent: 'center' }}>
-            {scanPhase === 0 && <PhaseDetecting />}
-            {scanPhase === 1 && <PhaseHolding />}
-            {scanPhase === 2 && <PhaseBreathing />}
+          {currentState === ScanState.IDLE && (
+            <PhaseIdle onStart={handleStartScan} />
+          )}
 
-            {/* --- LIVE DIAGNOSTIC DASHBOARD --- */}
-            <View style={styles.diagnosticCard}>
-               <Text style={styles.diagTitle}>ENGINEER DIAGNOSTICS</Text>
-               <Text style={styles.diagText}>Raw Light: <Text style={{fontWeight: 'bold'}}>{diagRaw}</Text> / 255</Text>
-               <Text style={styles.diagText}>Pulse Variance: <Text style={{fontWeight: 'bold'}}>{diagVariance}</Text></Text>
-               <Text style={[styles.diagStatus, { color: diagStatus.includes('✅') ? '#00FF00' : '#FF3333' }]}>
-                 {diagStatus}
-               </Text>
-            </View>
-          </View>
-        )}
+          {currentState === ScanState.SCANNING && (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              {scanPhase === 0 && <PhaseDetecting />}
+              {scanPhase === 1 && <PhaseHolding />}
+              {scanPhase === 2 && <PhaseBreathing />}
 
-        {currentState === ScanState.SELECTING_CONTEXT && (
-          <View style={styles.insightWrapper}>
-            <PhaseComplete bpm={bpm} />
-            <Text style={styles.sectionTitle}>What were you just doing?</Text>
-            <ScrollView showsVerticalScrollIndicator={false} style={{ width: '100%', marginTop: 20 }}>
-               {['Resting', 'Light Activity', 'Studying', 'Exercising', 'Feeling Stressed'].map((ctx) => (
-                 <TouchableOpacity key={ctx} style={styles.contextPill} onPress={() => handleContextSelect(ctx)}>
-                   <Text style={styles.contextText}>{ctx}</Text>
-                 </TouchableOpacity>
-               ))}
-            </ScrollView>
-          </View>
-        )}
-
-        {currentState === ScanState.AWAITING_AI && (
-          <View style={[styles.insightWrapper, { justifyContent: 'center' }]}>
-            <PhaseComplete bpm={bpm} />
-            <ActivityIndicator size="large" color="#4FB2C4" style={{ marginTop: 40 }} />
-            <Text style={[styles.sectionTitle, { marginTop: 20 }]}>Reflecting on your reading...</Text>
-          </View>
-        )}
-
-        {currentState === ScanState.SHOWING_INSIGHT && (
-          <ScrollView contentContainerStyle={styles.insightWrapper} showsVerticalScrollIndicator={false}>
-            <PhaseComplete bpm={bpm} />
-            <View style={styles.glassCard}>
-              <View style={styles.cardHeader}>
-                <Text style={styles.insightTitle}>✨ AI Health Insight</Text>
+              {/* --- LIVE DIAGNOSTIC DASHBOARD --- */}
+              <View style={styles.diagnosticCard}>
+                 <Text style={[styles.diagTitle, { fontSize: fontSize.sm, marginBottom: ms(10) }]}>ENGINEER DIAGNOSTICS</Text>
+                 <Text style={[styles.diagText, { fontSize: fontSize.md, marginBottom: ms(5) }]}>Raw Light: <Text style={{fontWeight: 'bold'}}>{diagRaw}</Text> / 255</Text>
+                 <Text style={[styles.diagText, { fontSize: fontSize.md, marginBottom: ms(5) }]}>Pulse Variance: <Text style={{fontWeight: 'bold'}}>{diagVariance}</Text></Text>
+                 <Text style={[styles.diagStatus, { fontSize: fontSize.md, marginTop: ms(10), color: diagStatus.includes('✅') ? '#00FF00' : '#FF3333' }]}>
+                   {diagStatus}
+                 </Text>
               </View>
-              <Text style={styles.selectedContextText}>Context: {selectedContext}</Text>
-              <Text style={styles.insightBodyText}>{aiInsight}</Text>
-              <TouchableOpacity style={styles.scanAgainButton} onPress={resetScanner}>
-                <Text style={styles.scanAgainText}>Scan Again</Text>
-              </TouchableOpacity>
             </View>
-          </ScrollView>
-        )}
+          )}
+
+          {currentState === ScanState.SELECTING_CONTEXT && (
+            <View style={[styles.insightWrapper, { paddingHorizontal: ms(20), paddingTop: ms(20) }]}>
+              <PhaseComplete bpm={bpm} />
+              <Text style={[styles.sectionTitle, { fontSize: fontSize.xl, marginTop: ms(30) }]}>What were you just doing?</Text>
+              <ScrollView showsVerticalScrollIndicator={false} style={{ width: '100%', marginTop: ms(20) }}>
+                 {['Resting', 'Light Activity', 'Studying', 'Exercising', 'Feeling Stressed'].map((ctx) => (
+                   <TouchableOpacity key={ctx} style={[styles.contextPill, { paddingVertical: ms(15), marginBottom: ms(10) }]} onPress={() => handleContextSelect(ctx)}>
+                     <Text style={[styles.contextText, { fontSize: fontSize.lg }]}>{ctx}</Text>
+                   </TouchableOpacity>
+                 ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {currentState === ScanState.AWAITING_AI && (
+            <View style={[styles.insightWrapper, { justifyContent: 'center', paddingHorizontal: ms(20) }]}>
+              <PhaseComplete bpm={bpm} />
+              <ActivityIndicator size="large" color="#4FB2C4" style={{ marginTop: ms(40) }} />
+              <Text style={[styles.sectionTitle, { fontSize: fontSize.xl, marginTop: ms(20) }]}>Reflecting on your reading...</Text>
+            </View>
+          )}
+
+          {currentState === ScanState.SHOWING_INSIGHT && (
+            <ScrollView contentContainerStyle={[styles.insightScrollContent, { paddingHorizontal: ms(20), paddingTop: ms(20) }]} showsVerticalScrollIndicator={false}>
+              <PhaseComplete bpm={bpm} />
+              <View style={[styles.glassCard, { padding: ms(24), marginTop: ms(30) }]}>
+                <View style={styles.cardHeader}>
+                  <Text style={[styles.insightTitle, { fontSize: fontSize.xxl }]}>✨ AI Health Insight</Text>
+                </View>
+                <Text style={[styles.selectedContextText, { fontSize: fontSize.sm, marginBottom: ms(15) }]}>Context: {selectedContext}</Text>
+                <Text style={[styles.insightBodyText, { fontSize: fontSize.md + 1, marginBottom: ms(30) }]}>{aiInsight}</Text>
+                <TouchableOpacity style={[styles.scanAgainButton, { paddingVertical: ms(14), paddingHorizontal: ms(30) }]} onPress={resetScanner}>
+                  <Text style={[styles.scanAgainText, { fontSize: fontSize.lg }]}>Scan Again</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          )}
+
+        </View>
+      </View>
+
+      {/* ===== BOTTOM NAVIGATION BAR ===== */}
+      <View style={[styles.bottomNav, { paddingTop: 8, paddingBottom: Math.max(insets.bottom, 24) }]}>
+        <View style={styles.navTabActive}>
+          <ScanIcon color="#FFFFFF" width={ms(24)} height={ms(24)} />
+          <Text style={[styles.navTextActive, { fontSize: fontSize.sm, marginTop: ms(4) }]}>Scan</Text>
+        </View>
+
+        <TouchableOpacity 
+          style={styles.navTabInactive} 
+          activeOpacity={0.8}
+          onPress={() => router.push('/explore')}
+        >
+          <HistoryIcon color="rgba(255, 255, 255, 0.5)" width={ms(24)} height={ms(24)} />
+          <Text style={[styles.navTextInactive, { fontSize: fontSize.sm, marginTop: ms(4) }]}>History</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -271,28 +305,37 @@ export default function HeartScanner() {
 
 const styles = StyleSheet.create({
   mainContainer: { flex: 1, backgroundColor: '#000' },
-  uiOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.65)', paddingTop: 60, paddingBottom: 20 },
-  headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
+  uiOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.65)' },
+  headerTitle: { color: 'white', fontWeight: 'bold', textAlign: 'center' },
+  contentArea: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   permissionContainer: { flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center', padding: 20 },
   permissionText: { color: 'white', fontSize: 16, textAlign: 'center', marginBottom: 20, lineHeight: 24 },
   permissionButton: { backgroundColor: '#4FB2C4', padding: 15, borderRadius: 10 },
   permissionButtonText: { color: 'white', fontWeight: 'bold' },
   
   // DIAGNOSTIC STYLES
-  diagnosticCard: { position: 'absolute', bottom: 30, width: '90%', alignSelf: 'center', backgroundColor: 'rgba(0,0,0,0.85)', padding: 15, borderRadius: 15, borderWidth: 2, borderColor: '#333' },
-  diagTitle: { color: '#aaa', fontSize: 12, fontWeight: 'bold', letterSpacing: 2, marginBottom: 10, textAlign: 'center' },
-  diagText: { color: '#fff', fontSize: 14, fontFamily: 'monospace', marginBottom: 5 },
-  diagStatus: { fontSize: 14, fontWeight: 'bold', marginTop: 10, textAlign: 'center' },
+  diagnosticCard: { position: 'absolute', bottom: 10, width: '90%', alignSelf: 'center', backgroundColor: 'rgba(0,0,0,0.85)', padding: 15, borderRadius: 15, borderWidth: 2, borderColor: '#333' },
+  diagTitle: { color: '#aaa', fontWeight: 'bold', letterSpacing: 2, textAlign: 'center' },
+  diagText: { color: '#fff', fontFamily: 'monospace' },
+  diagStatus: { fontWeight: 'bold', textAlign: 'center' },
 
-  insightWrapper: { flex: 1, width: '100%', paddingHorizontal: 20, alignItems: 'center', paddingTop: 20 },
-  sectionTitle: { color: 'white', fontSize: 18, fontWeight: '600', marginTop: 30, textAlign: 'center' },
-  contextPill: { backgroundColor: 'rgba(255,255,255,0.1)', paddingVertical: 15, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', marginBottom: 10, width: '100%', alignItems: 'center' },
-  contextText: { color: 'white', fontSize: 16, fontWeight: '500' },
-  glassCard: { width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.2)', borderWidth: 1, borderRadius: 16, padding: 24, marginTop: 30 },
+  insightWrapper: { flex: 1, width: '100%', alignItems: 'center' },
+  insightScrollContent: { width: '100%', alignItems: 'center' },
+  sectionTitle: { color: 'white', fontWeight: '600', textAlign: 'center' },
+  contextPill: { backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)', width: '100%', alignItems: 'center' },
+  contextText: { color: 'white', fontWeight: '500' },
+  glassCard: { width: '100%', backgroundColor: 'rgba(255, 255, 255, 0.1)', borderColor: 'rgba(255, 255, 255, 0.2)', borderWidth: 1, borderRadius: 16 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 },
-  insightTitle: { color: '#4FB2C4', fontSize: 20, fontWeight: 'bold' },
-  selectedContextText: { color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 15, textTransform: 'uppercase', letterSpacing: 1 },
-  insightBodyText: { color: 'white', fontSize: 15, lineHeight: 24, marginBottom: 30 },
-  scanAgainButton: { backgroundColor: '#e8e8e8', paddingVertical: 14, paddingHorizontal: 30, borderRadius: 30, alignSelf: 'center' },
-  scanAgainText: { color: '#1a1a1a', fontWeight: 'bold', fontSize: 16 }
+  insightTitle: { color: '#4FB2C4', fontWeight: 'bold' },
+  selectedContextText: { color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: 1 },
+  insightBodyText: { color: 'white', lineHeight: 24 },
+  scanAgainButton: { backgroundColor: '#e8e8e8', borderRadius: 30, alignSelf: 'center' },
+  scanAgainText: { color: '#1a1a1a', fontWeight: 'bold' },
+
+  // BOTTOM NAVIGATION STYLES
+  bottomNav: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', zIndex: 100 },
+  navTabActive: { flex: 1, backgroundColor: '#ff9a9a', justifyContent: 'center', alignItems: 'center' },
+  navTabInactive: { flex: 1, backgroundColor: '#383b65', justifyContent: 'center', alignItems: 'center' },
+  navTextActive: { color: 'white', fontWeight: 'bold' },
+  navTextInactive: { color: 'rgba(255,255,255,0.6)' },
 });

@@ -9,9 +9,8 @@ export const PhaseBreathing = () => (
   </View>
 );
 
-// Reuse the same styles object
 const styles = StyleSheet.create({
-  container: { alignItems: 'center', paddingTop: 43 },
-  mainCircle: { width: 240, height: 240, borderRadius: 120, backgroundColor: '#e8e8e8', borderWidth: 6, borderColor: '#5a5b78', justifyContent: 'center', alignItems: 'center' },
+  container: { width: '100%', alignItems: 'center' },
+  mainCircle: { width: '62%', aspectRatio: 1, borderRadius: 9999, backgroundColor: '#e8e8e8', borderWidth: 6, borderColor: '#5a5b78', justifyContent: 'center', alignItems: 'center' },
   circleText: { fontSize: 16, color: '#1a1a1a', textAlign: 'center', fontWeight: '500', lineHeight: 24 },
 });

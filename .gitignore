@@ -1,0 +1,60 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment files
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Expo
+.expo/
+**/.expo/
+dist/
+**/dist/
+web-build/
+**/web-build/
+expo-env.d.ts
+**/expo-env.d.ts
+
+# Native keys, build outputs, and IDE configs
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.gradle/
+**/.gradle/
+build/
+**/build/
+.idea/
+**/.idea/
+local.properties
+**/local.properties
+*.iml
+*.hprof
+.cxx/
+**/.cxx/
+*.jsbundle
+
+# Metro
+.metro-health-check*
+
+# Debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+
+# TypeScript
+*.tsbuildinfo
+
+# Inner git backup
+git_backup/
+**/git_backup/
+

@@ -1,11 +1,11 @@
 // /src/api/aiService.ts
 
-// We updated this to your exact laptop IP! (Assuming your backend runs on port 3000)
-const BACKEND_URL = 'http://192.168.0.103:3000';
+// Deployed on Render (free tier — first request after idle may take ~30s)
+const BACKEND_URL = 'https://pulse-wellness-ai-backend.onrender.com';
 
 export const fetchAIInsight = async (bpm: number, contextId: string) => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60-second timeout (Render free tier cold start)
 
   try {
     const response = await fetch(`${BACKEND_URL}/generate-insight`, {
